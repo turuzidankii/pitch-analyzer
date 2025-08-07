@@ -1,0 +1,95 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "运行音频音调分析工具 - 帮助",
+            "type": "shell",
+            "command": "python",
+            "args": ["main.py", "--help"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "测试音调分析功能",
+            "type": "shell",
+            "command": "python",
+            "args": ["test_analyzer.py"],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "安装Python依赖",
+            "type": "shell",
+            "command": "pip",
+            "args": ["install", "-r", "requirements.txt"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "分析单个音频文件",
+            "type": "shell",
+            "command": "python",
+            "args": ["main.py", "${input:audioFile}", "--analyze-only", "-v"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "比较两个音频文件",
+            "type": "shell",
+            "command": "python",
+            "args": ["main.py", "${input:audioFile1}", "${input:audioFile2}", "-v"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        }
+    ],
+    "inputs": [
+        {
+            "id": "audioFile",
+            "description": "选择要分析的音频文件",
+            "default": "audio.wav",
+            "type": "promptString"
+        },
+        {
+            "id": "audioFile1",
+            "description": "选择第一个音频文件",
+            "default": "audio1.wav",
+            "type": "promptString"
+        },
+        {
+            "id": "audioFile2",
+            "description": "选择第二个音频文件",
+            "default": "audio2.wav",
+            "type": "promptString"
+        }
+    ]
+}
