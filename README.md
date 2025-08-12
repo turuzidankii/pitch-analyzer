@@ -38,7 +38,33 @@ print(f"音调是否相同: {is_same}")
 ### 命令行使用
 
 ```bash
+# 基本音调比较
 python main.py audio1.wav audio2.wav
+
+# 分析单个文件
+python main.py audio1.wav --analyze-only
+
+# 音程变化分析（新功能）
+python main.py audio1.wav --pitch-contour --start-time 0 --end-time 10
+
+# 高精度音程分析
+python main.py audio1.wav --pitch-contour --start-time 1:00 --end-time 1:30 --frame-size 0.05
+```
+
+### 音程分析功能
+
+新增的音程分析功能可以分析音频在指定时间范围内的音调变化：
+
+- **时间范围分析**: 指定开始和结束时间
+- **音程可视化**: 生成折线图显示音程变化
+- **详细统计**: 提供音程范围、平均频率等统计信息
+- **高精度分析**: 可调节分析帧大小
+
+```python
+# 使用API进行音程分析
+analyzer = AudioPitchAnalyzer()
+contour_result = analyzer.analyze_pitch_contour("audio.wav", 0, 10, frame_size=0.1)
+analyzer.visualize_pitch_contour(contour_result, "contour.png")
 ```
 
 ## 项目结构

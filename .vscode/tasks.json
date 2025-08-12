@@ -70,6 +70,42 @@
                 "panel": "shared"
             },
             "problemMatcher": []
+        },
+        {
+            "label": "分析音程变化",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "main.py", 
+                "${input:audioFile}", 
+                "--pitch-contour", 
+                "--start-time", "${input:startTime}",
+                "--end-time", "${input:endTime}",
+                "--frame-size", "${input:frameSize}",
+                "-v"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "测试音程分析功能",
+            "type": "shell",
+            "command": "python",
+            "args": ["test_pitch_contour.py"],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
         }
     ],
     "inputs": [
@@ -89,6 +125,24 @@
             "id": "audioFile2",
             "description": "选择第二个音频文件",
             "default": "audio2.wav",
+            "type": "promptString"
+        },
+        {
+            "id": "startTime",
+            "description": "开始时间（格式: 1:30 或 90）",
+            "default": "0",
+            "type": "promptString"
+        },
+        {
+            "id": "endTime",
+            "description": "结束时间（格式: 1:30 或 90）",
+            "default": "10",
+            "type": "promptString"
+        },
+        {
+            "id": "frameSize",
+            "description": "分析帧大小（秒）",
+            "default": "0.1",
             "type": "promptString"
         }
     ]

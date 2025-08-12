@@ -10,6 +10,37 @@ import sys
 import os
 from typing import List
 from audio_pitch_analyzer import AudioPitchAnalyzer
+from audio_utils import AudioUtils
+
+def print_contour_result(result: dict, verbose: bool = False):
+    """打印音程分析结果"""
+    print(f"\n{'='*60}")
+    print(f"音程变化分析结果")
+    print(f"{'='*60}")
+    print(f"文件: {result['file_path']}")
+    
+    time_range = result['time_range']
+    print(f"时间范围: {time_range['start_time']:.1f}s - {time_range['end_time']:.1f}s")
+    print(f"分析时长: {time_range['duration']:.1f}秒")
+    print(f"帧大小: {result['frame_size']:.1f}秒")
+    
+    stats = result['statistics']
+    print(f"\n统计信息:")
+    print(f"  平均频率: {stats['avg_frequency']:.1f} Hz")
+    print(f"  音程范围: {stats['interval_range']:.1f} 半音")
+    print(f"  最高音程: +{stats['max_interval']:.1f} 半音")
+    print(f"  最低音程: {stats['min_interval']:.1f} 半音")
+    print(f"  平均置信度: {stats['avg_confidence']:.2f}")
+    
+    if verbose:
+        data = result['analysis_data']
+        print(f"\n详细数据:")
+        print(f"  总帧数: {len(data['times'])}")
+        valid_notes = [note for note in data['notes'] if note != 'Silent']
+        print(f"  有效音符帧数: {len(valid_notes)}")
+        if valid_notes:
+            unique_notes = list(set(valid_notes))
+            print(f"  检测到的音符: {', '.join(sorted(unique_notes))}")
 
 def print_analysis_result(result: dict, verbose: bool = False):
     """打印分析结果"""
@@ -88,6 +119,9 @@ def main():
   python main.py audio1.wav --visualize                   # 生成可视化图表
   python main.py audio1.wav --start-time 1:00             # 从1分钟开始分析
   python main.py audio1.wav --start-time 1:00 --end-time 1:25  # 分析1:00到1:25
+  python main.py audio1.wav --pitch-contour --start-time 60 --end-time 85  # 分析60-85秒的音程变化
+  python main.py audio1.wav --pitch-contour --start-time 1:00 --end-time 1:30 --frame-size 0.05  # 音程分析，帧大小0.05秒
+  python main.py audio1.wav --start-time 1:00 --end-time 1:25  # 分析1:00到1:25
   python main.py audio1.wav --start-time 60 --end-time 85      # 分析60秒到85秒
         """
     )
@@ -149,6 +183,19 @@ def main():
         help='生成可视化图表'
     )
     
+    parser.add_argument(
+        '--pitch-contour',
+        action='store_true',
+        help='分析音程变化（需要指定开始和结束时间）'
+    )
+    
+    parser.add_argument(
+        '--frame-size',
+        type=float,
+        default=0.1,
+        help='音程分析的帧大小（秒），默认0.1秒'
+    )
+    
     args = parser.parse_args()
     
     # 检查文件
@@ -175,7 +222,37 @@ def main():
         sys.exit(1)
     
     try:
-        if args.analyze_only or len(valid_files) == 1:
+        # 检查音程分析模式
+        if args.pitch_contour:
+            if not args.start_time or not args.end_time:
+                print("错误: 音程分析需要指定开始时间和结束时间")
+                sys.exit(1)
+            
+            # 音程分析模式
+            for file_path in valid_files:
+                try:
+                    print(f"\n正在分析音程变化: {file_path}")
+                    
+                    # 解析时间参数
+                    start_seconds = AudioUtils.parse_time_string(args.start_time)
+                    end_seconds = AudioUtils.parse_time_string(args.end_time)
+                    
+                    # 分析音程变化
+                    contour_result = analyzer.analyze_pitch_contour(
+                        file_path, start_seconds, end_seconds, args.frame_size)
+                    
+                    # 打印分析结果
+                    print_contour_result(contour_result, verbose=args.verbose)
+                    
+                    # 生成可视化图表
+                    save_path = f"{os.path.splitext(file_path)[0]}_contour.png"
+                    analyzer.visualize_pitch_contour(contour_result, save_path)
+                    
+                except Exception as e:
+                    print(f"分析文件 {file_path} 的音程变化时出错: {e}")
+                    continue
+        
+        elif args.analyze_only or len(valid_files) == 1:
             # 仅分析模式
             for file_path in valid_files:
                 try:

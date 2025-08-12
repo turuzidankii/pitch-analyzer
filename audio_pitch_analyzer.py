@@ -362,3 +362,165 @@ class AudioPitchAnalyzer:
                 'average_confidence': avg_confidence
             }
         }
+    
+    def analyze_pitch_contour(self, file_path: str, start_time: float, end_time: float, 
+                             frame_size: float = 0.1) -> Dict[str, Any]:
+        """
+        分析音频指定时间范围内的音程变化
+        
+        Args:
+            file_path: 音频文件路径
+            start_time: 开始时间（秒）
+            end_time: 结束时间（秒）
+            frame_size: 分析帧大小（秒），默认0.1秒
+            
+        Returns:
+            Dict[str, Any]: 音程分析结果
+        """
+        if not AudioUtils.is_supported_format(file_path):
+            raise ValueError(f"不支持的音频格式: {file_path}")
+        
+        if start_time >= end_time:
+            raise ValueError("开始时间必须小于结束时间")
+        
+        # 加载音频
+        duration = end_time - start_time
+        y, sr = AudioUtils.load_audio(file_path, sr=self.sr, 
+                                     duration=duration, offset=start_time)
+        
+        # 预处理音频
+        y = AudioUtils.preprocess_audio(y, sr)
+        
+        # 计算分析参数
+        frame_samples = int(frame_size * sr)
+        hop_samples = frame_samples // 2  # 50% 重叠
+        
+        # 存储分析结果
+        times = []
+        frequencies = []
+        notes = []
+        confidences = []
+        intervals = []
+        
+        # 逐帧分析音调
+        for i in range(0, len(y) - frame_samples, hop_samples):
+            frame = y[i:i + frame_samples]
+            
+            # 计算时间点
+            time_point = start_time + (i + frame_samples // 2) / sr
+            times.append(time_point)
+            
+            # 检测音调
+            freq, conf = self.pitch_detector.detect_fundamental_frequency(frame)
+            
+            frequencies.append(freq)
+            confidences.append(conf)
+            
+            # 转换为音符
+            if freq > 0:
+                note = self.pitch_detector.frequency_to_note(freq)
+                notes.append(note)
+            else:
+                notes.append("Silent")
+        
+        # 计算音程（以半音为单位）
+        for i, freq in enumerate(frequencies):
+            if i == 0 or freq <= 0 or frequencies[0] <= 0:
+                intervals.append(0)
+            else:
+                # 计算相对于第一个音符的音程（半音数）
+                interval = 12 * np.log2(freq / frequencies[0]) if frequencies[0] > 0 else 0
+                intervals.append(interval)
+        
+        return {
+            'file_path': file_path,
+            'time_range': {
+                'start_time': start_time,
+                'end_time': end_time,
+                'duration': duration
+            },
+            'frame_size': frame_size,
+            'analysis_data': {
+                'times': times,
+                'frequencies': frequencies,
+                'notes': notes,
+                'confidences': confidences,
+                'intervals': intervals
+            },
+            'statistics': {
+                'avg_frequency': np.mean([f for f in frequencies if f > 0]),
+                'max_interval': max(intervals) if intervals else 0,
+                'min_interval': min(intervals) if intervals else 0,
+                'interval_range': max(intervals) - min(intervals) if intervals else 0,
+                'avg_confidence': np.mean(confidences)
+            }
+        }
+    
+    def visualize_pitch_contour(self, contour_data: Dict[str, Any], save_path: Optional[str] = None):
+        """
+        可视化音程变化折线图
+        
+        Args:
+            contour_data: analyze_pitch_contour的结果
+            save_path: 保存路径，如果为None则显示图表
+        """
+        data = contour_data['analysis_data']
+        times = data['times']
+        intervals = data['intervals']
+        frequencies = data['frequencies']
+        confidences = data['confidences']
+        
+        # 创建图表
+        fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 10))
+        
+        # 子图1: 音程变化（半音）
+        ax1.plot(times, intervals, 'b-', linewidth=2, label='Interval (semitones)')
+        ax1.set_ylabel('Interval (semitones)', fontsize=12)
+        ax1.set_title(f'Pitch Contour Analysis: {os.path.basename(contour_data["file_path"])}', 
+                     fontsize=14, fontweight='bold')
+        ax1.grid(True, alpha=0.3)
+        ax1.legend()
+        
+        # 添加音程标记
+        for i in range(-12, 13, 3):  # 每3个半音标记一次
+            ax1.axhline(y=i, color='gray', linestyle='--', alpha=0.5)
+            if i == 0:
+                ax1.axhline(y=i, color='red', linestyle='-', alpha=0.7, label='Base note')
+        
+        # 子图2: 频率变化
+        valid_freqs = [(t, f) for t, f in zip(times, frequencies) if f > 0]
+        if valid_freqs:
+            valid_times, valid_frequencies = zip(*valid_freqs)
+            ax2.plot(valid_times, valid_frequencies, 'g-', linewidth=2, label='Frequency (Hz)')
+            ax2.set_ylabel('Frequency (Hz)', fontsize=12)
+            ax2.grid(True, alpha=0.3)
+            ax2.legend()
+        
+        # 子图3: 置信度
+        ax3.plot(times, confidences, 'r-', linewidth=2, label='Confidence')
+        ax3.set_xlabel('Time (seconds)', fontsize=12)
+        ax3.set_ylabel('Confidence', fontsize=12)
+        ax3.set_ylim(0, 1)
+        ax3.grid(True, alpha=0.3)
+        ax3.legend()
+        
+        # 添加统计信息
+        stats = contour_data['statistics']
+        info_text = f"""Analysis Statistics:
+        Avg Frequency: {stats['avg_frequency']:.1f} Hz
+        Interval Range: {stats['interval_range']:.1f} semitones
+        Avg Confidence: {stats['avg_confidence']:.2f}
+        Duration: {contour_data['time_range']['duration']:.1f}s"""
+        
+        fig.text(0.02, 0.02, info_text, fontsize=10, 
+                bbox=dict(boxstyle="round,pad=0.3", facecolor="lightgray", alpha=0.8))
+        
+        plt.tight_layout()
+        
+        if save_path:
+            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            print(f"Pitch contour chart saved: {save_path}")
+        else:
+            plt.show()
+        
+        plt.close()

@@ -49,6 +49,28 @@ python main.py audio1.wav audio2.wav -sr 44100
 # 从1分钟开始分析到结束
 python main.py audio1.wav --start-time 1:00 --analyze-only
 
+# 分析1:00到1:25的片段
+python main.py audio1.wav --start-time 1:00 --end-time 1:25 --analyze-only
+
+# 分析60秒到85秒的片段
+python main.py audio1.wav --start-time 60 --end-time 85 --analyze-only
+```
+
+### 9. 音程变化分析 🆕
+```bash
+# 基本音程分析（分析0-10秒的音程变化）
+python main.py audio1.wav --pitch-contour --start-time 0 --end-time 10
+
+# 高精度音程分析（0.05秒帧大小）
+python main.py audio1.wav --pitch-contour --start-time 0 --end-time 10 --frame-size 0.05
+
+# 分析1分钟到1分30秒的音程变化
+python main.py audio1.wav --pitch-contour --start-time 1:00 --end-time 1:30
+
+# 详细音程分析输出
+python main.py audio1.wav --pitch-contour --start-time 0 --end-time 10 -v
+```
+
 # 分析1分钟到1分25秒的片段
 python main.py audio1.wav --start-time 1:00 --end-time 1:25 --analyze-only
 
@@ -91,6 +113,38 @@ print(f"相对误差: {comparison['relative_error']:.1%}")
 
 # 生成可视化
 analyzer.visualize_pitch_analysis(result1, "analysis1.png")
+
+# 音程变化分析 🆕
+contour_result = analyzer.analyze_pitch_contour("audio1.wav", 0, 10, frame_size=0.1)
+analyzer.visualize_pitch_contour(contour_result, "contour.png")
+
+print(f"音程范围: {contour_result['statistics']['interval_range']:.1f} 半音")
+print(f"平均频率: {contour_result['statistics']['avg_frequency']:.1f} Hz")
+```
+
+## 音程分析功能详解 🆕
+
+### 什么是音程分析？
+音程分析功能可以分析音频在指定时间范围内的音调变化，以半音为单位显示音程的变化趋势。
+
+### 核心参数
+- **start_time**: 开始时间（秒或 mm:ss 格式）
+- **end_time**: 结束时间（秒或 mm:ss 格式）
+- **frame_size**: 分析帧大小（秒），影响分析精度
+  - 较小值（0.05s）: 高精度，适合快速变化的音调
+  - 较大值（0.2s）: 低精度，适合缓慢变化的音调
+
+### 输出说明
+音程分析会生成包含三个子图的可视化图表：
+1. **音程变化折线图**: 显示相对于起始音符的音程变化（半音）
+2. **频率变化图**: 显示绝对频率的变化（Hz）
+3. **置信度图**: 显示检测结果的可靠性
+
+### 应用场景
+- 分析歌手的音准变化
+- 检测音调滑动和颤音
+- 分析乐器演奏的音程准确性
+- 音乐教学中的音程训练
 ```
 
 ## 支持的音频格式
