@@ -57,6 +57,8 @@ python main.py audio1.wav --pitch-contour --start-time 1:00 --end-time 1:30 --fr
 
 - **时间范围分析**: 指定开始和结束时间
 - **音程可视化**: 生成折线图显示音程变化
+- **科学音高记号法**: 右侧Y轴显示标准音符记号（C4, D#4, F5等）🆕
+- **智能音符标注**: 自动标注显著音程变化点的音符名称🆕
 - **详细统计**: 提供音程范围、平均频率等统计信息
 - **高精度分析**: 可调节分析帧大小
 
@@ -66,6 +68,13 @@ analyzer = AudioPitchAnalyzer()
 contour_result = analyzer.analyze_pitch_contour("audio.wav", 0, 10, frame_size=0.1)
 analyzer.visualize_pitch_contour(contour_result, "contour.png")
 ```
+
+#### 可视化图表说明
+- **主折线图**: 以半音为单位的音程变化曲线
+- **右侧Y轴**: 科学音高记号法标记（C4, D4, E4等）
+- **黄色标注**: 显著音程变化点的音符名称
+- **红色基线**: 起始音符参考线
+- **网格线**: 每半个八度的音程参考
 
 ## 项目结构
 

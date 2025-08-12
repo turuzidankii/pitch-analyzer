@@ -106,6 +106,20 @@
                 "panel": "shared"
             },
             "problemMatcher": []
+        },
+        {
+            "label": "测试科学音高记号法",
+            "type": "shell",
+            "command": "python",
+            "args": ["test_scientific_notation.py"],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
         }
     ],
     "inputs": [

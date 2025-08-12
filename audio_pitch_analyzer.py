@@ -458,7 +458,7 @@ class AudioPitchAnalyzer:
     
     def visualize_pitch_contour(self, contour_data: Dict[str, Any], save_path: Optional[str] = None):
         """
-        可视化音程变化折线图
+        可视化音程变化折线图（使用科学音高记号法）
         
         Args:
             contour_data: analyze_pitch_contour的结果
@@ -469,23 +469,31 @@ class AudioPitchAnalyzer:
         intervals = data['intervals']
         frequencies = data['frequencies']
         confidences = data['confidences']
+        notes = data['notes']
         
         # 创建图表
-        fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 10))
+        fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(14, 12))
         
-        # 子图1: 音程变化（半音）
+        # 子图1: 音程变化（使用科学音高记号法）
         ax1.plot(times, intervals, 'b-', linewidth=2, label='Interval (semitones)')
         ax1.set_ylabel('Interval (semitones)', fontsize=12)
         ax1.set_title(f'Pitch Contour Analysis: {os.path.basename(contour_data["file_path"])}', 
                      fontsize=14, fontweight='bold')
         ax1.grid(True, alpha=0.3)
-        ax1.legend()
         
-        # 添加音程标记
-        for i in range(-12, 13, 3):  # 每3个半音标记一次
+        # 添加科学音高记号法的 Y 轴标记
+        self._add_scientific_pitch_labels(ax1, frequencies, intervals)
+        
+        # 添加音程标记线
+        for i in range(-24, 25, 6):  # 每半个八度标记一次
             ax1.axhline(y=i, color='gray', linestyle='--', alpha=0.5)
             if i == 0:
-                ax1.axhline(y=i, color='red', linestyle='-', alpha=0.7, label='Base note')
+                ax1.axhline(y=i, color='red', linestyle='-', alpha=0.7, linewidth=2)
+        
+        # 在折线图上标注重要的音符变化点
+        self._annotate_pitch_changes(ax1, times, intervals, notes)
+        
+        ax1.legend()
         
         # 子图2: 频率变化
         valid_freqs = [(t, f) for t, f in zip(times, frequencies) if f > 0]
@@ -524,3 +532,81 @@ class AudioPitchAnalyzer:
             plt.show()
         
         plt.close()
+    
+    def _add_scientific_pitch_labels(self, ax, frequencies, intervals):
+        """添加科学音高记号法的 Y 轴标记"""
+        # 找到第一个有效频率作为基准
+        base_freq = None
+        for freq in frequencies:
+            if freq > 0:
+                base_freq = freq
+                break
+        
+        if base_freq is None:
+            return
+        
+        # 计算合适的音程范围
+        min_interval = min(intervals) if intervals else -12
+        max_interval = max(intervals) if intervals else 12
+        
+        # 扩展范围以包含更多音符
+        y_min = int(min_interval) - 3
+        y_max = int(max_interval) + 3
+        
+        # 生成音程标记
+        pitch_ticks = []
+        pitch_labels = []
+        
+        for interval in range(y_min, y_max + 1, 2):  # 每2个半音标记一次
+            # 计算对应的频率
+            freq = base_freq * (2 ** (interval / 12))
+            # 转换为音符
+            note = self.pitch_detector.frequency_to_note(freq)
+            
+            pitch_ticks.append(interval)
+            pitch_labels.append(f"{note}")
+        
+        # 设置右侧 Y 轴为科学音高记号
+        ax2_right = ax.twinx()
+        ax2_right.set_ylim(ax.get_ylim())
+        ax2_right.set_yticks(pitch_ticks)
+        ax2_right.set_yticklabels(pitch_labels)
+        ax2_right.set_ylabel('Scientific Pitch Notation', fontsize=12, color='purple')
+        ax2_right.tick_params(axis='y', colors='purple')
+    
+    def _annotate_pitch_changes(self, ax, times, intervals, notes):
+        """在重要的音程变化点添加音符标注"""
+        if len(times) < 2:
+            return
+        
+        # 找到显著的音程变化点
+        significant_changes = []
+        threshold = 2.0  # 2个半音的变化阈值
+        
+        for i in range(1, len(intervals)):
+            change = abs(intervals[i] - intervals[i-1])
+            if change > threshold and notes[i] != "Silent":
+                significant_changes.append(i)
+        
+        # 限制标注数量，避免过于拥挤
+        max_annotations = 8
+        if len(significant_changes) > max_annotations:
+            # 选择变化最大的点
+            changes_with_index = [(abs(intervals[i] - intervals[i-1]), i) 
+                                for i in significant_changes]
+            changes_with_index.sort(reverse=True)
+            significant_changes = [idx for _, idx in changes_with_index[:max_annotations]]
+        
+        # 添加标注
+        for i in significant_changes:
+            if i < len(times) and notes[i] != "Silent":
+                ax.annotate(notes[i], 
+                           xy=(times[i], intervals[i]),
+                           xytext=(5, 10), 
+                           textcoords='offset points',
+                           bbox=dict(boxstyle='round,pad=0.3', 
+                                   facecolor='yellow', alpha=0.7),
+                           arrowprops=dict(arrowstyle='->', 
+                                         connectionstyle='arc3,rad=0'),
+                           fontsize=9,
+                           color='black')
